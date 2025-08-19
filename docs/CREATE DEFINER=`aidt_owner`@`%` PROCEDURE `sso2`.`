@@ -1,0 +1,179 @@
+CREATE DEFINER=`aidt_owner`@`%` PROCEDURE `sso2`.`PROC_MULTI_T_S_CREATE_AIDT_OWNER`(
+    IN p_subject VARCHAR(255),
+    IN p_name VARCHAR(255),
+    IN p_sid VARCHAR(10),
+    IN p_grade INT,
+    IN p_semester INT,
+    IN p_student_count INT
+)
+BEGIN
+    -- 변수 선언
+    DECLARE v_class_count INT DEFAULT 0;      -- 생성할 반 개수
+    DECLARE v_students_per_class INT DEFAULT 5;  -- 반당 학생 수
+    DECLARE v_current_class INT DEFAULT 1;    -- 현재 반 번호
+    DECLARE v_student_num INT DEFAULT 1;      -- 전체 학생 번호
+    DECLARE v_students_in_class INT DEFAULT 0;  -- 현재 반의 학생 수
+
+    DECLARE exit handler for sqlexception
+    BEGIN
+        -- 에러가 발생하면 롤백
+        GET DIAGNOSTICS CONDITION 1
+            @error_code = MYSQL_ERRNO,
+            @error_message = MESSAGE_TEXT;
+        ROLLBACK;
+        SELECT CONCAT('❌ 에러 발생 위치: ', IFNULL(@msg, '알 수 없음'), 
+                      '/ MySQL 에러 코드: ', @error_code,
+                      '/ 에러 메세지: ', @error_message) AS error_message;
+    END;
+
+    -- 세션 변수 초기화
+    SET @division = NULL;
+    SET @scd = NULL;
+    SET @prefix = NULL;
+    SET @crcd = NULL;
+    SET @ccd = NULL;
+    SET @lcd = NULL;
+    SET @seq = NULL;
+    SET @tchr_id = NULL;
+    SET @stu_id = NULL;
+    SET @s_name = NULL;
+    SET @t_name = NULL;
+
+    -- 필요한 반 개수 계산 (N 명씩)
+    SET v_class_count = CEILING(p_student_count / v_students_per_class);
+
+    -- 트랜잭션 시작
+    START TRANSACTION;
+    SET @msg = '트랜잭션 시작';
+    SET @error_text = '트랜잭션 시작';
+
+    -- depart와 order를 과목명에 의해 설정
+    IF p_subject LIKE '%영어%' THEN
+        SET @depart = '05013';
+        SET @order = '02';
+    ELSEIF p_subject LIKE '%수학%' THEN
+        SET @depart = '06013';
+        SET @order = '01';
+    ELSE
+        SET @depart = '00000';  -- 기본값
+        SET @order = '00';      -- 기본값
+    END IF;
+    SET @msg = 'depart, order 완료';
+
+    -- user_division 조회
+    SELECT user_division INTO @division
+    FROM sso2.tbl_school
+    WHERE school_id = p_sid COLLATE utf8mb4_general_ci;
+
+    IF @division IS NULL THEN
+        SET @error_text = '학교 정보 조회 실패';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_text;
+    END IF;
+    SET @msg = 'user_division 조회 완료';
+
+    -- subject_code 조회
+    SELECT subject_code INTO @scd
+    FROM sso2.tbl_subject
+    WHERE subject_name = p_subject COLLATE utf8mb4_general_ci;
+
+    IF @scd IS NULL THEN
+        SET @error_text = '과목 코드 조회 실패';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_text;
+    END IF;
+    SET @msg = 'subject_code 조회 완료';
+
+    -- 코드 prefix 생성
+    SET @prefix = CONCAT(@division, p_sid, '_2025_0', @order, @depart, '_', p_grade);
+
+    -- 선생님 한 명 생성 (모든 반 담당)
+    SET @tchr_id = UUID();
+    SET @t_name = CONCAT(p_name, '_T');
+    INSERT INTO sso2.tbl_teacher(user_id, user_name, school_id, use_terms_agree_yn)
+    VALUES (@tchr_id, @t_name, p_sid, 'Y');
+    INSERT INTO sso2.tbl_passwd(user_id, user_pw)
+    VALUES (@tchr_id, SHA2('ehddkcnfvks', 256));
+    SET @msg = '선생 추가 완료';
+
+    -- 각 반별로 처리
+    WHILE v_current_class <= v_class_count DO
+        -- 반 코드 생성
+        SELECT LPAD(IFNULL(MAX(CAST(SUBSTRING(class_code, -3) AS UNSIGNED)), 0) + 1, 3, '0') INTO @crcd
+        FROM sso2.tbl_lecture
+        WHERE LEFT(class_code, LENGTH(class_code) - 3) = @prefix COLLATE utf8mb4_general_ci;
+
+        IF @crcd IS NULL THEN
+            SET @error_text = CONCAT('반 ', v_current_class, ' crcd 생성 실패');
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = @error_text;
+        END IF;
+
+        SET @ccd = CONCAT(@prefix, @crcd);
+        SET @lcd = CONCAT(@division, p_sid, '_20251_', @scd, @crcd);
+        SET @msg = CONCAT('반 ', v_current_class, ' 코드 생성 완료');
+
+        -- 강의 insert
+        INSERT INTO sso2.tbl_lecture(lecture_code, day_week, class_period, subject_name,
+                                    classroom_name, subject_code, lecture_room_code,
+                                    lecture_room_name, class_code)
+        VALUES (@lcd, FLOOR(1 + RAND() * 5), FLOOR(5 + RAND() * 5), p_subject,
+                CONCAT(p_name, '_', v_current_class), @scd, @crcd,
+                CONCAT(p_name, '_', v_current_class), @ccd);
+
+        SET @seq = LAST_INSERT_ID();
+
+        -- 선생님 스케줄 추가
+        INSERT INTO sso2.tbl_schedule(user_id, seq)
+        VALUES (@tchr_id, @seq);
+        SET @msg = CONCAT('반 ', v_current_class, ' 강의 추가 완료');
+
+        -- 현재 반에 추가할 학생 수 계산
+        IF v_current_class = v_class_count THEN
+            -- 마지막 반인 경우 남은 모든 학생
+            SET v_students_in_class = p_student_count - (v_current_class - 1) * v_students_per_class;
+        ELSE
+            -- 일반 반인 경우 N명
+            SET v_students_in_class = v_students_per_class;
+        END IF;
+
+        -- 학생 insert (현재 반에 해당하는 학생들)
+        SET @student_counter = 1;
+        WHILE @student_counter <= v_students_in_class DO
+            SET @stu_id = UUID();
+            SET @s_name = CONCAT(p_name, '_C', v_current_class, '_S', @student_counter);
+
+            INSERT INTO sso2.tbl_student(user_id, user_name, user_number, user_gender,
+                                        class_code, use_terms_agree_yn)
+            VALUES (@stu_id, @s_name, v_student_num, 1, @ccd, 'Y');
+
+            INSERT INTO sso2.tbl_schedule(user_id, seq)
+            VALUES (@stu_id, @seq);
+
+            INSERT INTO sso2.tbl_passwd(user_id, user_pw)
+            VALUES (@stu_id, SHA2('ehddkcnfvks', 256));
+
+            SET @student_counter = @student_counter + 1;
+            SET v_student_num = v_student_num + 1;
+        END WHILE;
+        SET @msg = CONCAT('반 ', v_current_class, ' 학생 추가 완료');
+
+        -- 반 insert
+        INSERT INTO sso2.tbl_class(class_code, school_id, user_grade, user_order,
+                                   subject_code, user_dyng, user_class, school_year)
+        VALUES (@ccd, p_sid, p_grade, @order, @depart, '0', @crcd, '2025');
+        SET @msg = CONCAT('반 ', v_current_class, ' 추가 완료');
+
+        SET v_current_class = v_current_class + 1;
+    END WHILE;
+
+    -- 트랜잭션 커밋
+    COMMIT;
+
+    -- 결과 반환
+    SELECT
+        '트랜잭션 완료' AS message,
+        v_class_count AS total_classes,
+        p_student_count AS total_students,
+        @t_name AS teacher_name,
+        CONCAT('N명씩 ', v_class_count - 1, '개 반 + 마지막 반 ',
+               p_student_count - (v_class_count - 1) * v_students_per_class, '명') AS distribution;
+
+END

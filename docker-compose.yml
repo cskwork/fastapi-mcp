@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  aidt-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      # 애플리케이션 설정
+      - APP_NAME=AIDT MCP Server
+      - DEBUG=true
+      - ENVIRONMENT=development
+      - HOST=0.0.0.0
+      - PORT=8000
+      - LOG_LEVEL=INFO
+      - LOG_FORMAT=json
+      
+      # MCP 설정
+      - MCP_ENABLED_SERVICES=confluence,jira,slack
+      - MCP_MOUNT_PATH=/mcp
+      
+      # 보안 설정
+      - SECRET_KEY=your-secret-key-change-this-in-production
+      - CORS_ORIGINS=*
+      
+      # Confluence 설정 (환경변수 설정 필요)
+      - CONFLUENCE_BASE_URL=${CONFLUENCE_BASE_URL:-}
+      - CONFLUENCE_EMAIL=${CONFLUENCE_EMAIL:-}
+      - CONFLUENCE_API_TOKEN=${CONFLUENCE_API_TOKEN:-}
+      
+      # JIRA 설정 (환경변수 설정 필요)
+      - JIRA_BASE_URL=${JIRA_BASE_URL:-}
+      - JIRA_EMAIL=${JIRA_EMAIL:-}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN:-}
+      
+      # Slack 설정 (환경변수 설정 필요)
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_APP_TOKEN=${SLACK_APP_TOKEN:-}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET:-}
+    
+    volumes:
+      # 개발 중 코드 변경 반영을 위한 볼륨 마운트
+      - ./src:/app/src
+      - ./scripts:/app/scripts
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    restart: unless-stopped
+
+  # Redis (선택사항 - 세션 저장용)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+
+networks:
+  default:
+    name: aidt-mcp-network
