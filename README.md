@@ -15,7 +15,7 @@
 ## 📁 프로젝트 구조
 
 ```
-aidt-mcp/
+fastapi-mcp/
 ├── src/
 │   ├── main.py                 # 메인 FastAPI 애플리케이션
 │   ├── config/                 # 설정 관리
@@ -50,7 +50,7 @@ aidt-mcp/
 ```bash
 # 저장소 클론
 git clone <repository-url>
-cd aidt-mcp
+cd fastapi-mcp
 
 # uv 설치 (없는 경우)
 pip install uv
@@ -124,8 +124,8 @@ uv run uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 docker-compose up --build
 
 # 프로덕션용 (Docker)
-docker build -t aidt-mcp .
-docker run -p 8000:8000 --env-file .env aidt-mcp
+docker build -t fastapi-mcp .
+docker run -p 8000:8000 --env-file .env fastapi-mcp
 ```
 
 ## 🔌 MCP 클라이언트 연결
@@ -143,7 +143,7 @@ docker run -p 8000:8000 --env-file .env aidt-mcp
 ```json
 {
   "mcpServers": {
-    "aidt-mcp": {
+    "fastapi-mcp": {
       "command": "npx",
       "args": [
         "mcp-remote",
@@ -163,7 +163,7 @@ MCP Extension 설정에서:
 
 ```json
 {
-  "aidt-mcp": {
+  "fastapi-mcp": {
     "url": "http://127.0.0.1:8000/mcp"
   }
 }
@@ -176,7 +176,7 @@ MCP 설정에서:
 
 ```json
 {
-  "aidt-mcp": {
+  "fastapi-mcp": {
     "url": "http://127.0.0.1:8000/mcp"
   }
 }
@@ -185,7 +185,7 @@ MCP 설정에서:
 #### 4. Claude Code CLI
 ```bash
 # MCP 서버 추가
-claude-code mcp add aidt-mcp http://127.0.0.1:8000/mcp
+claude-code mcp add fastapi-mcp http://127.0.0.1:8000/mcp
 
 # 연결 확인
 claude-code mcp list
@@ -402,14 +402,14 @@ uv run mypy src/
 
 ```bash
 # 이미지 빌드
-docker build -t aidt-mcp:latest .
+docker build -t fastapi-mcp:latest .
 
 # 컨테이너 실행
 docker run -d \
-  --name aidt-mcp \
+  --name fastapi-mcp \
   -p 8000:8000 \
   --env-file .env \
-  aidt-mcp:latest
+  fastapi-mcp:latest
 ```
 
 ### Kubernetes 배포
@@ -419,25 +419,25 @@ docker run -d \
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: aidt-mcp
+  name: fastapi-mcp
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: aidt-mcp
+      app: fastapi-mcp
   template:
     metadata:
       labels:
-        app: aidt-mcp
+        app: fastapi-mcp
     spec:
       containers:
-      - name: aidt-mcp
-        image: aidt-mcp:latest
+      - name: fastapi-mcp
+        image: fastapi-mcp:latest
         ports:
         - containerPort: 8000
         envFrom:
         - secretRef:
-            name: aidt-mcp-secrets
+            name: fastapi-mcp-secrets
 ```
 
 ## 📚 상세 문서

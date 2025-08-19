@@ -1,5 +1,5 @@
 [project]
-name = "aidt-mcp"
+name = "fastapi-mcp"
 version = "0.1.0"
 description = "AIDT MCP FastAPI 멀티서버 플랫폼"
 authors = [
@@ -49,8 +49,8 @@ docs = [
 ]
 
 [project.scripts]
-aidt-mcp-dev = "scripts.start_dev:main"
-aidt-mcp-health = "scripts.health_check:main"
+fastapi-mcp-dev = "scripts.start_dev:main"
+fastapi-mcp-health = "scripts.health_check:main"
 
 [build-system]
 requires = ["hatchling"]

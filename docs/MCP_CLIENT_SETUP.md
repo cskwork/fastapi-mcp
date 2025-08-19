@@ -79,7 +79,7 @@ FastAPI MCP 서버와 연결하기 위해 **mcp-remote** 명령어를 사용합�
 ```json
 {
   "mcpServers": {
-    "aidt-mcp": {
+    "fastapi-mcp": {
       "command": "npx",
       "args": [
         "mcp-remote",
@@ -106,7 +106,7 @@ Cursor에서는 **URL 방식**을 사용하여 직접 연결합니다.
 
 ```json
 {
-  "aidt-mcp": {
+  "fastapi-mcp": {
     "url": "http://127.0.0.1:8000/mcp"
   }
 }
@@ -126,7 +126,7 @@ Windsurf MCP 설정에서 URL 방식 사용:
 
 ```json
 {
-  "aidt-mcp": {
+  "fastapi-mcp": {
     "url": "http://127.0.0.1:8000/mcp"
   }
 }
@@ -138,7 +138,7 @@ Claude Code CLI에서 MCP 서버 추가:
 
 ```bash
 # MCP 서버 추가
-claude-code mcp add aidt-mcp http://127.0.0.1:8000/mcp
+claude-code mcp add fastapi-mcp http://127.0.0.1:8000/mcp
 
 # 연결 확인
 claude-code mcp list
@@ -157,7 +157,7 @@ VS Code에서 MCP Extension 사용:
 ```json
 {
   "mcp.servers": {
-    "aidt-mcp": {
+    "fastapi-mcp": {
       "url": "http://127.0.0.1:8000/mcp",
       "name": "AIDT MCP Server",
       "description": "AIDT 통합 MCP 서버 (Calculator, Confluence, JIRA, Slack)"
@@ -325,7 +325,7 @@ uv run uvicorn src.main:app --reload --host 127.0.0.1 --port 8000
 - **올바른 설정**:
 ```json
 {
-  "aidt-mcp": {
+  "fastapi-mcp": {
     "url": "http://127.0.0.1:8000/mcp"
   }
 }

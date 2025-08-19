@@ -72,8 +72,8 @@ python scripts/health_check.py --url http://localhost:8001
 docker-compose up --build
 
 # 프로덕션용 Docker 빌드
-docker build -t aidt-mcp .
-docker run -p 8000:8000 --env-file .env aidt-mcp
+docker build -t fastapi-mcp .
+docker run -p 8000:8000 --env-file .env fastapi-mcp
 ```
 
 ## Architecture Overview

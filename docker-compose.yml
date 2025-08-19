@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  aidt-mcp:
+  fastapi-mcp:
     build:
       context: .
       dockerfile: Dockerfile
@@ -73,4 +73,4 @@ volumes:
 
 networks:
   default:
-    name: aidt-mcp-network
+    name: fastapi-mcp-network
