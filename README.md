@@ -1,6 +1,6 @@
-# AIDT MCP FastAPI 멀티서버 플랫폼
+# MCP FastAPI 멀티서버 플랫폼
 
-AIDT (AI Digital Textbook) 시스템을 위한 확장 가능한 MCP (Model Context Protocol) 서버 플랫폼입니다. FastAPI 기반으로 구축되어 여러 외부 서비스(Confluence, JIRA, Slack 등)와의 통합을 제공합니다.
+확장 가능한 MCP (Model Context Protocol) 서버 플랫폼입니다. FastAPI 기반으로 구축되어 여러 외부 서비스(Confluence, JIRA, Slack 등)와의 통합을 제공합니다.
 
 ## 🚀 주요 특징
 
